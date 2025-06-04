@@ -167,3 +167,21 @@ input[type="submit"]:hover, .button:hover {
 .delete:hover {
     background-color: #b52a37;
 }
+
+.pagination a {
+    margin: 0 5px;
+    padding: 5px 10px;
+    background: #ddd;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.pagination a:hover {
+    background: #bbb;
+}
+
+.button.logout {
+    background: red;
+    color: white;
+}
