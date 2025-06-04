@@ -89,7 +89,8 @@ include 'db.php';
             <!-- Search form -->
             <form method="GET" action="dashboard.php" class="input-group mb-4">
                 <input type="text" name="search" class="form-control" placeholder="Search posts..."
-                    value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+                    value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>"> <!--  Sets the input value to the 'search' query parameter from the URL if it exists, safely escaped for HTML output.  -->
+
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
 
@@ -97,19 +98,19 @@ include 'db.php';
 
             <?php
             // ----------- PAGINATION SETUP -----------
-            $limit = 5;
-            $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1;
-            $start = ($page - 1) * $limit;
+            $limit = 5;//Number of posts per page
+            $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1; //This line checks if the user has provided a valid page number in the URL. If yes, it uses that number; otherwise, it defaults to page 1.
+            $start = ($page - 1) * $limit;//Calculate the starting point for the SQL query
 
             // ----------- SEARCH SETUP -----------
-            $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-            $search_sql = $search ? "WHERE title LIKE '%$search%' OR content LIKE '%$search%'" : '';
+            $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';//It checks if the user has entered anything in the search box (via URL), and if they have, it sanitizes the input to protect your database. If the user didn't search anything, it sets the variable to an empty string.
+            $search_sql = $search ? "WHERE title LIKE '%$search%' OR content LIKE '%$search%'" : '';//This is for the SQL query to filter posts based on the search term. If the user has searched for something, it will look for that term in the title or content of the posts. If not, it will return all posts.
 
             // ----------- COUNT TOTAL MATCHING POSTS -----------
             $count_query = "SELECT COUNT(*) AS total FROM posts $search_sql";
             $count_result = mysqli_query($conn, $count_query);
-            $total = mysqli_fetch_assoc($count_result)['total'];
-            $total_pages = ceil($total / $limit);
+            $total = mysqli_fetch_assoc($count_result)['total'];//This line counts how many posts match the search criteria. It runs a SQL query that counts all posts, applying the search filter if there is one.
+            $total_pages = ceil($total / $limit);//This line calculates the total number of pages needed to display all posts, based on the number of posts per page (limit). It uses the `ceil` function to round up to the nearest whole number, ensuring that any remaining posts that don't fill a complete page still get their own page.
 
             // ----------- FETCH POSTS FOR CURRENT PAGE -----------
             $query = "SELECT * FROM posts $search_sql ORDER BY created_at DESC LIMIT $start, $limit";
@@ -152,7 +153,6 @@ include 'db.php';
     </div>
 </div>
 
-<!-- Bootstrap JS Bundle CDN -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
