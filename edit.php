@@ -8,11 +8,12 @@ if (!isset($_SESSION['user'])) {
 include 'db.php';
 
 $id = $_GET['id'] ?? null;
-if (!$id) {
+if (!$id || !is_numeric($id)) {
     header("Location: dashboard.php");
     exit;
 }
 
+// Fetch the post
 $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
@@ -23,16 +24,22 @@ if (!$post) {
     exit;
 }
 
+$update_success = false;
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $title = $_POST['title'];
-    $content = $_POST['content'];
+    $title = trim($_POST['title']);
+    $content = trim($_POST['content']);
 
     $update = $conn->prepare("UPDATE posts SET title = ?, content = ? WHERE id = ?");
     $update->bind_param("ssi", $title, $content, $id);
-    $update->execute();
-
-    header("Location: dashboard.php");
-    exit;
+    
+    if ($update->execute()) {
+        $update_success = true;
+        header("Location: dashboard.php");
+        exit;
+    } else {
+        $error_message = "Failed to update the post. Try again.";
+    }
 }
 ?>
 
@@ -40,25 +47,64 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html>
 <head>
     <title>Edit Post</title>
-    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #181a1b;
+            color: #e0e0e0;
+        }
+        .form-control {
+            background-color: #23272b;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+        .form-control:focus {
+            background-color: #23272b;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+        .card {
+            background-color: #23272b;
+            border: 1px solid #343a40;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Edit Post</h2>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="col-md-8">
+        <div class="card p-4 shadow">
+            <h3 class="mb-4 text-center">Edit Post</h3>
 
-    <form method="post">
-        <label>Title:</label>
-        <input type="text" name="title" value="<?= htmlspecialchars($post['title']) ?>" required>
+            <?php if (!empty($error_message)): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($error_message) ?></div>
+            <?php endif; ?>
 
-        <label>Content:</label>
-        <textarea name="content" rows="6" required><?= htmlspecialchars($post['content']) ?></textarea>
+            <form method="post" novalidate>
+                <div class="mb-3">
+                    <label class="form-label">Title:</label>
+                    <input type="text" name="title" class="form-control" value="<?= htmlspecialchars($post['title']) ?>" required>
+                </div>
 
-        <input type="submit" value="Update Post">
-    </form>
+                <div class="mb-3">
+                    <label class="form-label">Content:</label>
+                    <textarea name="content" rows="6" class="form-control" required><?= htmlspecialchars($post['content']) ?></textarea>
+                </div>
 
-    <div style="text-align: center; margin-top: 20px;">
-        <a href="dashboard.php" class="button">← Back to Dashboard</a>
+                <button type="submit" class="btn btn-primary w-100">Update Post</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="dashboard.php" class="btn btn-outline-light">← Back to Dashboard</a>
+            </div>
+        </div>
     </div>
 </div>
 

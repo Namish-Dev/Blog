@@ -103,18 +103,49 @@ include 'db.php';
             $start = ($page - 1) * $limit;//Calculate the starting point for the SQL query
 
             // ----------- SEARCH SETUP -----------
-            $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';//It checks if the user has entered anything in the search box (via URL), and if they have, it sanitizes the input to protect your database. If the user didn't search anything, it sets the variable to an empty string.
-            $search_sql = $search ? "WHERE title LIKE '%$search%' OR content LIKE '%$search%'" : '';//This is for the SQL query to filter posts based on the search term. If the user has searched for something, it will look for that term in the title or content of the posts. If not, it will return all posts.
+            //$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';//It checks if the user has entered anything in the search box (via URL), and if they have, it sanitizes the input to protect your database. If the user didn't search anything, it sets the variable to an empty string.
+            //$search_sql = $search ? "WHERE title LIKE '%$search%' OR content LIKE '%$search%'" : '';//This is for the SQL query to filter posts based on the search term. If the user has searched for something, it will look for that term in the title or content of the posts. If not, it will return all posts.
+            $search = isset($_GET['search']) ? trim($_GET['search']) : ''; // Get the search term safely
+
+
 
             // ----------- COUNT TOTAL MATCHING POSTS -----------
-            $count_query = "SELECT COUNT(*) AS total FROM posts $search_sql";
-            $count_result = mysqli_query($conn, $count_query);
-            $total = mysqli_fetch_assoc($count_result)['total'];//This line counts how many posts match the search criteria. It runs a SQL query that counts all posts, applying the search filter if there is one.
+            //$count_query = "SELECT COUNT(*) AS total FROM posts $search_sql";
+            //$count_result = mysqli_query($conn, $count_query);
+            //$total = mysqli_fetch_assoc($count_result)['total'];//This line counts how many posts match the search criteria. It runs a SQL query that counts all posts, applying the search filter if there is one.
+            
+            if ($search) {
+                $count_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM posts WHERE title LIKE ? OR content LIKE ?");
+                $like_search = "%$search%"; // Wrap search term in wildcards for LIKE
+                $count_stmt->bind_param("ss", $like_search, $like_search); // Bind parameters securely
+                $count_stmt->execute(); // Run the prepared query
+                $count_result = $count_stmt->get_result(); // Get result set
+                $total = $count_result->fetch_assoc()['total']; // Fetch the total count
+                $count_stmt->close(); // Close the prepared statement
+            } else {
+                $count_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM posts");
+                $count_stmt->execute();
+                $count_result = $count_stmt->get_result();
+                $total = $count_result->fetch_assoc()['total'];
+                $count_stmt->close();
+            }
+            
             $total_pages = ceil($total / $limit);//This line calculates the total number of pages needed to display all posts, based on the number of posts per page (limit). It uses the `ceil` function to round up to the nearest whole number, ensuring that any remaining posts that don't fill a complete page still get their own page.
 
             // ----------- FETCH POSTS FOR CURRENT PAGE -----------
-            $query = "SELECT * FROM posts $search_sql ORDER BY created_at DESC LIMIT $start, $limit";
-            $result = mysqli_query($conn, $query);
+            //$query = "SELECT * FROM posts $search_sql ORDER BY created_at DESC LIMIT $start, $limit";
+            //$result = mysqli_query($conn, $query);
+            if ($search) {
+                $query_stmt = $conn->prepare("SELECT * FROM posts WHERE title LIKE ? OR content LIKE ? ORDER BY created_at DESC LIMIT ?, ?");
+                $like_search = "%$search%"; // Prepare the search term with wildcards
+                $query_stmt->bind_param("ssii", $like_search, $like_search, $start, $limit); // Securely bind variables
+            } else {
+                $query_stmt = $conn->prepare("SELECT * FROM posts ORDER BY created_at DESC LIMIT ?, ?");
+                $query_stmt->bind_param("ii", $start, $limit); // Bind pagination only
+            }
+            $query_stmt->execute(); // Execute the prepared query
+            $result = $query_stmt->get_result(); // Fetch result set from executed query
+            if (isset($query_stmt)) $query_stmt->close(); // Always close prepared statements
 
             // ----------- DISPLAY POSTS -----------
             if (mysqli_num_rows($result) > 0) {
