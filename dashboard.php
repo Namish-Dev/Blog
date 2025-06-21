@@ -5,6 +5,8 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 include 'db.php';
+include 'functions.php'; // Include helper functions like isAdmin()
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -80,6 +82,10 @@ include 'db.php';
             <!-- Welcome and Top Links -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="mb-0 fw-bold">Welcome, <?= htmlspecialchars($_SESSION['user']) ?>!</h2>
+                <?php if (isAdmin()): ?>
+                    <a href="admin-panel.php" class="btn btn-warning btn-sm mt-2">Go to Admin Panel</a>
+                <?php endif; ?>
+
                 <div>
                     <a href="create.php" class="btn btn-success me-2">New Post +</a>
                     <a href="logout.php" class="btn btn-danger">Logout</a>
